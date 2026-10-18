@@ -20,4 +20,4 @@ A stretch of road between two junctions whose type changes partway along (for ex
 [*]Safe to add to or remove from an existing save.
 [/list]
 [hr][/hr]
-This mod was developed with the help of AI coding tools (Claude Code). Full source code is included in the Source folder for review.
+This mod was developed with the help of AI coding tools (Claude Code). Full source code is included in the Source folder and on [url=https://github.com/ifchen0/WorldRoadCleanup]GitHub[/url] for review.
