@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <WRC_RemoveDeadEnds>清除殘留的道路末端</WRC_RemoveDeadEnds>
+  <WRC_RemoveDeadEnds_Desc>末端沒有據點或其他世界物件的道路，在靜止期內都沒有變化後，每一步縮短一格。兩個地點之間的道路永遠不會被切斷。</WRC_RemoveDeadEnds_Desc>
+  <WRC_StraightenKinks>拉直繞路並合併重複道路</WRC_StraightenKinks>
+  <WRC_StraightenKinks_Desc>道路繞出去又回到出發點旁邊時（例如支線被清除後留下的 V 字尖角，或兩條路在尖端會合），會把繞路剪掉，讓相鄰的兩格直接相連。長的 V 字形會一步步收平。兩個路口之間有兩條緊貼並排的路，或一條長的斷頭路緊貼著另一條路時，會拆掉多出來的那條。三條路從同一個尖端呈扇形散開時，改在往外一格的地方交會。</WRC_StraightenKinks_Desc>
+  <WRC_UnifyTypes>統一混雜的道路種類</WRC_UnifyTypes>
+  <WRC_UnifyTypes_Desc>兩個路口之間的一段道路，種類在靜止期內都沒有變化後，改成該段佔多數的種類。平手時不改。</WRC_UnifyTypes_Desc>
+  <WRC_MaxSpurLength>清除的末端最長：{0} 格</WRC_MaxSpurLength>
+  <WRC_MaxSpurLength_Desc>只有從末端到下一個路口或世界物件的距離不超過這個長度時，才會清除。更長的道路即使通往空地也會保留，因為看起來像真正的路線。</WRC_MaxSpurLength_Desc>
+  <WRC_StillnessDays>靜止期：{0} 天</WRC_StillnessDays>
+  <WRC_StillnessDays_Desc>道路末端或混雜路段需要維持多久不變才會被處理。仍在修建中的道路會持續變化，因此不會被動到。</WRC_StillnessDays_Desc>
+  <WRC_StepHours>每步間隔：{0} 小時</WRC_StepHours>
+  <WRC_StepHours_Desc>每一步會把所有已過靜止期的道路末端各縮短一格。</WRC_StepHours_Desc>
+  <WRC_DebugFast>除錯：快速模式</WRC_DebugFast>
+  <WRC_DebugFast_Desc>取消靜止期，並每 60 tick 執行一步，方便直接觀察清理過程。修建中的道路也會被清掉，正常遊玩請關閉。</WRC_DebugFast_Desc>
+</LanguageData>

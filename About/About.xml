@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ModMetaData>
+  <name>World Road Cleanup: Leftover Road Removal</name>
+  <author>ifchen0</author>
+  <packageId>ifchen0.worldroadcleanup</packageId>
+  <supportedVersions><li>1.6</li><li>1.7</li></supportedVersions>
+  <description>Warning: this mod was written with AI coding tools (Claude Code).
+
+Slowly removes leftover world-map roads that lead nowhere, for example roads left behind when the settlement they were built for is destroyed, and evens out roads whose type changes partway along.
+
+Leftover roads
+A short road end (8 tiles or less by default) that has no settlement or other world object on it, and that has not changed for a while (60 days by default), is shortened by one tile per step until it reaches a junction or something on the map. Longer roads into empty land are kept. Roads still being built keep growing at their end, so they are left alone. A road between two places is never cut.
+
+Sharp corners
+Where a road wanders off and comes back next to where it left (a sharp V where a removed branch used to meet it, or two roads joined at a pointed tip), the detour is cut out step by step until the road runs straight.
+
+Doubled roads
+Where two roads run right next to each other between the same junctions, or a long dead-end road runs right alongside another road, the extra one is removed. The remaining road still connects the same places. Three roads fanning out of one pointed tip are joined one tile further out instead.
+
+Mixed road types
+A stretch of road between two junctions whose road types have not changed for the same period is changed to the type used on most of that stretch. Ties are left as they are.
+
+Notes
+- Works with roads from any source; nothing is specific to one mod.
+- Safe to add to or remove from an existing save.</description>
+  <modDependencies>
+    <li><packageId>brrainz.harmony</packageId><displayName>Harmony</displayName><steamWorkshopUrl>steam://url/CommunityFilePage/2009463077</steamWorkshopUrl></li>
+  </modDependencies>
+  <loadAfter><li>brrainz.harmony</li></loadAfter>
+</ModMetaData>
