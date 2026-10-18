@@ -22,6 +22,7 @@ A stretch of road between two junctions whose road types have not changed for th
 
 Notes
 - Works with roads from any source; nothing is specific to one mod.
+- Changes to the world map are permanent; removing the mod does not bring roads back.
 - Safe to add to or remove from an existing save.</description>
   <modDependencies>
     <li><packageId>brrainz.harmony</packageId><displayName>Harmony</displayName><steamWorkshopUrl>steam://url/CommunityFilePage/2009463077</steamWorkshopUrl></li>

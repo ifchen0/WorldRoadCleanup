@@ -1,0 +1,23 @@
+Slowly tidies up the world map: removes leftover roads that lead nowhere, straightens odd shapes, and evens out road types. Works with roads from any mod or from world generation.
+
+[h2]Leftover roads[/h2]
+Roads built toward a settlement that is later destroyed often stay behind as stubs in the middle of nowhere. A road end with nothing on it (no settlement, site, caravan or other world object) is shortened by one tile per step once it has stayed unchanged for a while (60 days by default). Only short stubs are removed (8 tiles or less by default); longer roads into empty land look like real routes and are kept. Roads that are still being built keep growing at their end, so they are left alone.
+
+[h2]Odd shapes[/h2][list]
+[*][b]Sharp V shapes:[/b] where a road wanders off and comes back next to where it left, often where a removed branch used to meet it, the detour is cut out.
+[*][b]Doubled roads:[/b] where two roads run right next to each other between the same junctions, or a long dead-end road runs right alongside another road, the extra one is removed.
+[*][b]Pointed forks:[/b] three roads fanning out of one pointed tip are joined one tile further out instead.
+[/list]
+Every road still connects the same places afterwards.
+
+[h2]Mixed road types[/h2]
+A stretch of road between two junctions whose type changes partway along (for example stone road, then dirt path, then stone road again) is changed to the type used on most of it, once it has stayed unchanged for the same period. Ties are left alone.
+
+[h2]Notes[/h2][list]
+[*]Changes happen gradually, one step every 24 hours by default, so roads fade away over time instead of vanishing at once.
+[*]Each part can be switched off, and the stillness period, the longest stub removed and the time between steps can be changed in the mod settings.
+[*]Changes to the world map are permanent; removing the mod does not bring roads back.
+[*]Safe to add to or remove from an existing save.
+[/list]
+[hr][/hr]
+This mod was developed with the help of AI coding tools (Claude Code). Full source code is included in the Source folder for review.
