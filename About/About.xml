@@ -9,6 +9,8 @@
 
 Slowly removes leftover world-map roads that lead nowhere, for example roads left behind when the settlement they were built for is destroyed, and evens out roads whose type changes partway along.
 
+Warning: road changes are written into your save and cannot be undone. Removing this mod later does not bring removed or changed roads back. Make a backup of your save before trying it.
+
 Leftover roads
 A short road end (8 tiles or less by default) that has no settlement or other world object on it, and that has not changed for a while (60 days by default), is shortened by one tile per step until it reaches a junction or something on the map. Longer roads into empty land are kept. Roads still being built keep growing at their end, so they are left alone. A road between two places is never cut.
 
@@ -23,7 +25,6 @@ A stretch of road between two junctions whose road types have not changed for th
 
 Notes
 - Works with roads from any source; nothing is specific to one mod.
-- Changes to the world map are permanent; removing the mod does not bring roads back.
 - Safe to add to or remove from an existing save.</description>
   <modDependencies>
     <li><packageId>brrainz.harmony</packageId><displayName>Harmony</displayName><steamWorkshopUrl>steam://url/CommunityFilePage/2009463077</steamWorkshopUrl></li>
