@@ -1,13 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LanguageData>
   <WRC_RemoveDeadEnds>Remove leftover road ends</WRC_RemoveDeadEnds>
-  <WRC_RemoveDeadEnds_Desc>A road end with no settlement or other world object on it is shortened one tile per step once it has stayed unchanged for the stillness period. Roads between two places are never cut.</WRC_RemoveDeadEnds_Desc>
+  <WRC_RemoveDeadEnds_Desc>A road end with no settlement on it is shortened one tile per step once it has stayed unchanged for the stillness period. Roads between two places are never cut.</WRC_RemoveDeadEnds_Desc>
   <WRC_StraightenKinks>Straighten detours and doubled roads</WRC_StraightenKinks>
   <WRC_StraightenKinks_Desc>A road that wanders off and comes back next to where it left (a sharp V where a removed branch used to meet it, or two roads joined at a pointed tip) is cut short, so the two neighbouring tiles connect directly. Long V shapes flatten out step by step. Where two roads run right next to each other between the same junctions, or a long dead-end road runs right alongside another road, the extra one is removed. Three roads fanning out of one pointed tip are joined one tile further out instead.</WRC_StraightenKinks_Desc>
   <WRC_UnifyTypes>Even out mixed road types</WRC_UnifyTypes>
   <WRC_UnifyTypes_Desc>A stretch of road between two junctions whose types have stayed unchanged for the stillness period is changed to the type used on most of it. Ties are left alone.</WRC_UnifyTypes_Desc>
+  <WRC_AnchorAllWorldObjects>Keep roads to any world object</WRC_AnchorAllWorldObjects>
+  <WRC_AnchorAllWorldObjects_Desc>Off: only settlements hold roads in place. Caravans, travellers, quest sites and other world objects come and go, so a road end leading to one can still be removed, and passing caravans do not restart the stillness period. On: every world object on a road holds it in place, like a settlement.</WRC_AnchorAllWorldObjects_Desc>
   <WRC_MaxSpurLength>Longest road end removed: {0} tiles</WRC_MaxSpurLength>
-  <WRC_MaxSpurLength_Desc>A road end is only removed when the stretch from it to the next junction or world object is at most this long. Longer roads into empty land are kept, since they look like real routes.</WRC_MaxSpurLength_Desc>
+  <WRC_MaxSpurLength_Desc>A road end is only removed when the stretch from it to the next junction or settlement is at most this long. Longer roads into empty land are kept, since they look like real routes.</WRC_MaxSpurLength_Desc>
   <WRC_StillnessDays>Stillness period: {0} days</WRC_StillnessDays>
   <WRC_StillnessDays_Desc>How long a road end or a mixed stretch must stay unchanged before it is touched. Roads that are still being built keep changing, so they are left alone.</WRC_StillnessDays_Desc>
   <WRC_StepHours>Time between steps: {0} hours</WRC_StepHours>

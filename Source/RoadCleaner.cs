@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using RimWorld;
 using RimWorld.Planet;
 using UnityEngine;
@@ -102,13 +103,19 @@ namespace WorldRoadCleanup
             return result;
         }
 
-        /// <summary>Tiles with any world object: settlements, sites, caravans, construction markers and so on.</summary>
+        /// <summary>
+        /// Tiles that anchor a road: settlements by default, or every world object when the setting asks for it.
+        /// Moving objects (caravans, travellers) and short-lived sites would otherwise split stretches and restart their timers.
+        /// </summary>
         private static HashSet<int> OccupiedTiles(PlanetLayer layer)
         {
             var set = new HashSet<int>();
+            bool allObjects = WorldRoadCleanupMod.Settings.anchorAllWorldObjects;
             List<WorldObject> all = Find.WorldObjects.AllWorldObjects;
             for (int i = 0; i < all.Count; i++)
             {
+                if (!allObjects && !(all[i] is Settlement))
+                    continue;
                 PlanetTile tile = all[i].Tile;
                 if (tile.Valid && tile.Layer == layer)
                     set.Add(tile.tileId);
@@ -687,8 +694,84 @@ namespace WorldRoadCleanup
                             sb.Append($"\n  neighbours {roads[i].neighbor.tileId} and {roads[j].neighbor.tileId} touch (sharp corner)");
                     }
                 }
+                HashSet<int> occupied = OccupiedTiles(layer);
+                if (IsBreak(layer, tile.tileId, occupied))
+                {
+                    for (int i = 0; i < roads.Count; i++)
+                    {
+                        Walk(layer, tile.tileId, roads[i], occupied, new HashSet<long>(), out int end);
+                        DescribeSegment(sb, layer, occupied, tile.tileId, end);
+                    }
+                }
+                else
+                {
+                    // Walk to one end of the stretch first, then back over all of it.
+                    Walk(layer, tile.tileId, roads[0], occupied, new HashSet<long>(), out int start);
+                    if (start == tile.tileId)
+                    {
+                        DescribeSegment(sb, layer, occupied, start, start);
+                    }
+                    else
+                    {
+                        int back = walk[walk.Count - 1].a;
+                        SurfaceTile.RoadLink link = ((SurfaceTile)layer[start]).potentialRoads.Find(l => l.neighbor.tileId == back);
+                        Walk(layer, start, link, occupied, new HashSet<long>(), out int end);
+                        DescribeSegment(sb, layer, occupied, start, end);
+                    }
+                }
             }
             return sb.ToString();
+        }
+
+        /// <summary>Debug text for the stretch in <see cref="walk"/>: type counts and why it is or is not retyped.</summary>
+        private static void DescribeSegment(System.Text.StringBuilder sb, PlanetLayer layer, HashSet<int> occupied, int start, int end)
+        {
+            var typeCounts = new Dictionary<string, int>();
+            bool water = false;
+            long key = long.MaxValue;
+            ulong print = 0;
+            foreach (Link link in walk)
+            {
+                water |= IsWater(layer, link.a) || IsWater(layer, link.b);
+                typeCounts[link.road.defName] = typeCounts.TryGetValue(link.road.defName, out int c) ? c + 1 : 1;
+                long linkKey = LinkKey(layer.LayerID, link.a, link.b);
+                if (linkKey < key)
+                    key = linkKey;
+                print += Mix((ulong)linkKey ^ ((ulong)link.road.shortHash << 48));
+            }
+            sb.Append($"\n  segment {start} .. {end}: {walk.Count} links, types [{string.Join(", ", typeCounts.Select(kv => $"{kv.Key} {kv.Value}"))}]");
+            sb.Append($"\n    start: {DescribeOne(layer, start)}; end: {DescribeOne(layer, end)}");
+
+            bool looseEnd = IsLooseEnd(layer, start, occupied) || IsLooseEnd(layer, end, occupied);
+            int best = typeCounts.Values.Max();
+            string verdict;
+            if (looseEnd && walk.Count <= WorldRoadCleanupMod.Settings.maxSpurLength)
+                verdict = "skipped: short stretch to a loose end (dead-end pruning's job)";
+            else if (water)
+                verdict = "skipped: crosses water";
+            else if (typeCounts.Count < 2)
+                verdict = "single type, nothing to do";
+            else if (typeCounts.Values.Count(v => v == best) > 1)
+                verdict = "skipped: tie between the most common types";
+            else
+            {
+                CleanupState state = CleanupState.Get();
+                int now = Find.TickManager.TicksGame;
+                int stillTicks = WorldRoadCleanupMod.Settings.StillnessTicks;
+                if (state != null && state.segments.TryGetValue(key, out SegmentRecord old) && old.print == (long)print)
+                {
+                    float days = (now - old.since) / (float)GenDate.TicksPerDay;
+                    float needed = stillTicks / (float)GenDate.TicksPerDay;
+                    verdict = now - old.since >= stillTicks
+                        ? $"due: unchanged for {days:F1} days, retyped on the next step"
+                        : $"waiting: unchanged for {days:F1} of {needed:F1} days";
+                }
+                else
+                {
+                    verdict = "not tracked yet (new or changed since the last step), timer starts on the next step";
+                }
+            }
+            sb.Append($"\n    {verdict}");
         }
 
         private static string DescribeOne(PlanetLayer layer, int tileId)

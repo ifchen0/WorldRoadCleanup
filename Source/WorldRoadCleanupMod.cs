@@ -10,7 +10,9 @@ namespace WorldRoadCleanup
         public bool removeDeadEnds = true;
         public bool unifyTypes = true;
         public bool straightenKinks = true;
-        public int stillnessDays = 60;
+        // Off: only settlements anchor roads. On: every world object does, as in earlier versions.
+        public bool anchorAllWorldObjects;
+        public int stillnessDays = 30;
         public int maxSpurLength = 8;
         public int stepHours = 24;
         // Development aid: no stillness period and a step every second at normal speed.
@@ -24,7 +26,8 @@ namespace WorldRoadCleanup
             Scribe_Values.Look(ref removeDeadEnds, "removeDeadEnds", true);
             Scribe_Values.Look(ref unifyTypes, "unifyTypes", true);
             Scribe_Values.Look(ref straightenKinks, "straightenKinks", true);
-            Scribe_Values.Look(ref stillnessDays, "stillnessDays", 60);
+            Scribe_Values.Look(ref anchorAllWorldObjects, "anchorAllWorldObjects", false);
+            Scribe_Values.Look(ref stillnessDays, "stillnessDays", 30);
             Scribe_Values.Look(ref maxSpurLength, "maxSpurLength", 8);
             Scribe_Values.Look(ref stepHours, "stepHours", 24);
             Scribe_Values.Look(ref debugFast, "debugFast", false);
@@ -50,6 +53,7 @@ namespace WorldRoadCleanup
             listing.CheckboxLabeled("WRC_RemoveDeadEnds".Translate(), ref Settings.removeDeadEnds, "WRC_RemoveDeadEnds_Desc".Translate());
             listing.CheckboxLabeled("WRC_StraightenKinks".Translate(), ref Settings.straightenKinks, "WRC_StraightenKinks_Desc".Translate());
             listing.CheckboxLabeled("WRC_UnifyTypes".Translate(), ref Settings.unifyTypes, "WRC_UnifyTypes_Desc".Translate());
+            listing.CheckboxLabeled("WRC_AnchorAllWorldObjects".Translate(), ref Settings.anchorAllWorldObjects, "WRC_AnchorAllWorldObjects_Desc".Translate());
             listing.Gap();
             listing.Label("WRC_MaxSpurLength".Translate(Settings.maxSpurLength), tooltip: "WRC_MaxSpurLength_Desc".Translate());
             Settings.maxSpurLength = Mathf.RoundToInt(listing.Slider(Settings.maxSpurLength, 1f, 40f));
