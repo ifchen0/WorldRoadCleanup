@@ -9,6 +9,7 @@ Roads built toward a settlement that is later destroyed often stay behind as stu
 [*][b]Sharp V shapes:[/b] where a road wanders off and comes back next to where it left, often where a removed branch used to meet it, the detour is cut out.
 [*][b]Doubled roads:[/b] where two roads run right next to each other between the same junctions, or a long dead-end road runs right alongside another road, the extra one is removed.
 [*][b]Pointed forks:[/b] three roads fanning out of one pointed tip are joined one tile further out instead.
+[*][b]Knots:[/b] small tangles of junctions, such as three neighbouring tiles all linked to each other or a short ring where two ways join the same two tiles, lose their extra links.
 [/list]
 Every road still connects the same places afterwards.
 

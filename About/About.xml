@@ -18,7 +18,7 @@ Sharp corners
 Where a road wanders off and comes back next to where it left (a sharp V where a removed branch used to meet it, or two roads joined at a pointed tip), the detour is cut out step by step until the road runs straight.
 
 Doubled roads
-Where two roads run right next to each other between the same junctions, or a long dead-end road runs right alongside another road, the extra one is removed. The remaining road still connects the same places. Three roads fanning out of one pointed tip are joined one tile further out instead.
+Where two roads run right next to each other between the same junctions, or a long dead-end road runs right alongside another road, the extra one is removed. The remaining road still connects the same places. Three roads fanning out of one pointed tip are joined one tile further out instead. Small knots of junctions (three neighbouring tiles all linked to each other, or a short ring where two ways join the same two tiles) lose their extra links.
 
 Mixed road types
 A stretch of road between two junctions whose road types have not changed for the same period is changed to the type used on most of that stretch. Ties are left as they are.

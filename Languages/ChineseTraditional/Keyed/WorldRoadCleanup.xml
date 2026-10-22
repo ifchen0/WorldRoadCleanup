@@ -3,7 +3,7 @@
   <WRC_RemoveDeadEnds>清除殘留的道路末端</WRC_RemoveDeadEnds>
   <WRC_RemoveDeadEnds_Desc>末端沒有據點的道路，在靜止期內都沒有變化後，每一步縮短一格。兩個地點之間的道路永遠不會被切斷。</WRC_RemoveDeadEnds_Desc>
   <WRC_StraightenKinks>拉直繞路並合併重複道路</WRC_StraightenKinks>
-  <WRC_StraightenKinks_Desc>道路繞出去又回到出發點旁邊時（例如支線被清除後留下的 V 字尖角，或兩條路在尖端會合），會把繞路剪掉，讓相鄰的兩格直接相連。長的 V 字形會一步步收平。兩個路口之間有兩條緊貼並排的路，或一條長的斷頭路緊貼著另一條路時，會拆掉多出來的那條。三條路從同一個尖端呈扇形散開時，改在往外一格的地方交會。</WRC_StraightenKinks_Desc>
+  <WRC_StraightenKinks_Desc>道路繞出去又回到出發點旁邊時（例如支線被清除後留下的 V 字尖角，或兩條路在尖端會合），會把繞路剪掉，讓相鄰的兩格直接相連。長的 V 字形會一步步收平。兩個路口之間有兩條緊貼並排的路，或一條長的斷頭路緊貼著另一條路時，會拆掉多出來的那條。三條路從同一個尖端呈扇形散開時，改在往外一格的地方交會。路口擠成一團時（三格互相相連的三角形，或兩條短路連接同兩格形成的小環），會拆掉多出來的連結。</WRC_StraightenKinks_Desc>
   <WRC_UnifyTypes>統一混雜的道路種類</WRC_UnifyTypes>
   <WRC_UnifyTypes_Desc>兩個路口之間的一段道路，種類在靜止期內都沒有變化後，改成該段佔多數的種類。平手時不改。</WRC_UnifyTypes_Desc>
   <WRC_AnchorAllWorldObjects>保留通往任何世界物件的道路</WRC_AnchorAllWorldObjects>

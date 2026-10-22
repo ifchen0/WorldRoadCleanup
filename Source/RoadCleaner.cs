@@ -21,11 +21,12 @@ namespace WorldRoadCleanup
         public int straightened;
         public int merged;
         public int fans;
+        public int loops;
 
-        public bool Changed => removedLinks > 0 || unifiedLinks > 0 || straightened > 0 || merged > 0 || fans > 0;
+        public bool Changed => removedLinks > 0 || unifiedLinks > 0 || straightened > 0 || merged > 0 || fans > 0 || loops > 0;
 
         public override string ToString() =>
-            $"dead ends {trackedEnds} (still {stillEnds}; {longEnds} longer ones kept), removed {removedLinks} links; straightened {straightened} kinks; merged {merged} parallel; collapsed {fans} fans; " +
+            $"dead ends {trackedEnds} (still {stillEnds}; {longEnds} longer ones kept), removed {removedLinks} links; straightened {straightened} kinks; merged {merged} parallel; collapsed {fans} fans; opened {loops} small loops; " +
             $"mixed segments {trackedSegments} (still {stillSegments}), unified {unifiedSegments} ({unifiedLinks} links)";
     }
 
@@ -56,6 +57,8 @@ namespace WorldRoadCleanup
         private const int MaxParallelLinks = 20;
         // Longest detour (in links) that is shortcut when it comes back next to where it left.
         private const int MaxDetourLinks = 6;
+        // Longest stretch (in links) removed from a small loop; the way around may be one link longer.
+        private const int MaxLoopLinks = 4;
         private const int FlashTicks = 600;
         private static readonly Dictionary<RoadDef, int> counts = new Dictionary<RoadDef, int>();
 
@@ -87,6 +90,7 @@ namespace WorldRoadCleanup
                     changed |= StraightenKinks(layer, occupied, apply, flash, result);
                     changed |= MergeParallelRoads(layer, occupied, apply, flash, result);
                     changed |= CollapseFans(layer, occupied, apply, flash, result);
+                    changed |= OpenSmallLoops(layer, occupied, apply, flash, result);
                 }
                 if (WorldRoadCleanupMod.Settings.unifyTypes)
                     changed |= UnifySegments(layer, occupied, state, newSegments, now, stillTicks, apply, flash, result);
@@ -405,6 +409,127 @@ namespace WorldRoadCleanup
                 }
             }
             return changed;
+        }
+
+        /// <summary>
+        /// Knots of junctions: triangles of three neighbouring tiles that are all linked, and small rings where two
+        /// short ways join the same two tiles. A stretch between junctions (a single link counts) is removed when
+        /// another way between its ends, at most one link longer, runs right next to it. The ends stay connected
+        /// through that other way, and the network only loses links, so this cannot undo itself. Lower road types
+        /// go first; tiles touched by one change wait for the next pass.
+        /// </summary>
+        private static bool OpenSmallLoops(PlanetLayer layer, HashSet<int> occupied, bool apply, bool flash, PassResult result)
+        {
+            int layerId = layer.LayerID;
+            var visited = new HashSet<long>();
+            var stretches = new List<List<Link>>();
+            for (int i = 0; i < layer.TilesCount; i++)
+            {
+                if (Degree(layer, i) == 0 || !IsBreak(layer, i, occupied))
+                    continue;
+                List<SurfaceTile.RoadLink> roads = ((SurfaceTile)layer[i]).potentialRoads;
+                for (int r = 0; r < roads.Count; r++)
+                {
+                    if (visited.Contains(LinkKey(layerId, i, roads[r].neighbor.tileId)))
+                        continue;
+                    Walk(layer, i, roads[r], occupied, visited, out int end);
+                    if (end == i || walk.Count > MaxLoopLinks || IsLooseEnd(layer, i, occupied) || IsLooseEnd(layer, end, occupied))
+                        continue;
+                    stretches.Add(new List<Link>(walk));
+                }
+            }
+            stretches.Sort((x, y) =>
+            {
+                int c = MaxPriority(x).CompareTo(MaxPriority(y));
+                if (c == 0)
+                    c = y.Count.CompareTo(x.Count);
+                if (c == 0)
+                    c = x[0].a.CompareTo(y[0].a);
+                return c != 0 ? c : x[0].b.CompareTo(y[0].b);
+            });
+
+            var touched = new HashSet<int>();
+            bool changed = false;
+            foreach (List<Link> stretch in stretches)
+            {
+                if (AnyTouched(stretch, touched))
+                    continue;
+                List<Link> around = FindWayAround(layer, stretch, touched);
+                if (around == null || !Hugs(layer, stretch, around))
+                    continue;
+                result.loops++;
+                if (flash)
+                {
+                    Material mat = DebugMatsSpectrum.Mat(ColorParallel, transparent: true);
+                    if (stretch.Count == 1)
+                    {
+                        Find.World.debugDrawer.FlashTile(layer.PlanetTileForID(stretch[0].a), mat, null, FlashTicks);
+                        Find.World.debugDrawer.FlashTile(layer.PlanetTileForID(stretch[0].b), mat, null, FlashTicks);
+                    }
+                    for (int i = 0; i < stretch.Count - 1; i++)
+                        Find.World.debugDrawer.FlashTile(layer.PlanetTileForID(stretch[i].b), mat, null, FlashTicks);
+                }
+                foreach (Link link in stretch)
+                {
+                    touched.Add(link.a);
+                    touched.Add(link.b);
+                }
+                foreach (Link link in around)
+                {
+                    touched.Add(link.a);
+                    touched.Add(link.b);
+                }
+                if (!apply)
+                    continue;
+                foreach (Link link in stretch)
+                    RemoveLink(layer, link.a, link.b);
+                changed = true;
+            }
+            return changed;
+        }
+
+        /// <summary>
+        /// Shortest road from one end of <paramref name="stretch"/> to the other that avoids the stretch itself and
+        /// touched tiles, at most one link longer than the stretch; null when there is none.
+        /// </summary>
+        private static List<Link> FindWayAround(PlanetLayer layer, List<Link> stretch, HashSet<int> touched)
+        {
+            int start = stretch[0].a;
+            int goal = stretch[stretch.Count - 1].b;
+            int maxLinks = stretch.Count + 1;
+            var inner = new HashSet<int>();
+            for (int i = 0; i < stretch.Count - 1; i++)
+                inner.Add(stretch[i].b);
+            var parent = new Dictionary<int, Link> { [start] = default };
+            var frontier = new List<int> { start };
+            for (int depth = 0; depth < maxLinks && frontier.Count > 0; depth++)
+            {
+                var next = new List<int>();
+                foreach (int cur in frontier)
+                {
+                    foreach (SurfaceTile.RoadLink road in ((SurfaceTile)layer[cur]).potentialRoads)
+                    {
+                        int n = road.neighbor.tileId;
+                        if (parent.ContainsKey(n) || inner.Contains(n) || touched.Contains(n))
+                            continue;
+                        // The stretch's own single link is not a way around it.
+                        if (stretch.Count == 1 && cur == start && n == goal)
+                            continue;
+                        parent[n] = new Link { a = cur, b = n, road = road.road };
+                        if (n == goal)
+                        {
+                            var path = new List<Link>();
+                            for (int t = goal; t != start; t = parent[t].a)
+                                path.Add(parent[t]);
+                            path.Reverse();
+                            return path;
+                        }
+                        next.Add(n);
+                    }
+                }
+                frontier = next;
+            }
+            return null;
         }
 
         /// <summary>True when every inner tile of <paramref name="side"/> is on or next to <paramref name="other"/>.</summary>
