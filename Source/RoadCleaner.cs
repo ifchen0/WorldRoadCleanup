@@ -104,8 +104,8 @@ namespace WorldRoadCleanup
         }
 
         /// <summary>
-        /// Tiles that anchor a road: settlements by default, or every world object when the setting asks for it.
-        /// Moving objects (caravans, travellers) and short-lived sites would otherwise split stretches and restart their timers.
+        /// Tiles that anchor a road: stationary world objects by default, or every world object when the setting asks for it.
+        /// Moving objects (caravans, travellers) would otherwise split stretches and restart their timers.
         /// </summary>
         private static HashSet<int> OccupiedTiles(PlanetLayer layer)
         {
@@ -114,13 +114,25 @@ namespace WorldRoadCleanup
             List<WorldObject> all = Find.WorldObjects.AllWorldObjects;
             for (int i = 0; i < all.Count; i++)
             {
-                if (!allObjects && !(all[i] is Settlement))
+                if (!allObjects && IsMoving(all[i]))
                     continue;
                 PlanetTile tile = all[i].Tile;
                 if (tile.Valid && tile.Layer == layer)
                     set.Add(tile.tileId);
             }
             return set;
+        }
+
+        /// <summary>
+        /// Caravans and transporters move by type; any other object drawn away from its tile centre is a modded traveller mid-trip.
+        /// </summary>
+        private static bool IsMoving(WorldObject obj)
+        {
+            if (obj is Caravan || obj is TravellingTransporters)
+                return true;
+            if (!obj.Tile.Valid)
+                return false;
+            return (obj.DrawPos - Find.WorldGrid.GetTileCenter(obj.Tile)).sqrMagnitude > 0.01f;
         }
 
         private static bool PruneDeadEnds(PlanetLayer layer, HashSet<int> occupied, CleanupState state,

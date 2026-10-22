@@ -7,7 +7,7 @@
   <WRC_UnifyTypes>Even out mixed road types</WRC_UnifyTypes>
   <WRC_UnifyTypes_Desc>A stretch of road between two junctions whose types have stayed unchanged for the stillness period is changed to the type used on most of it. Ties are left alone.</WRC_UnifyTypes_Desc>
   <WRC_AnchorAllWorldObjects>Keep roads to any world object</WRC_AnchorAllWorldObjects>
-  <WRC_AnchorAllWorldObjects_Desc>Off: only settlements hold roads in place. Caravans, travellers, quest sites and other world objects come and go, so a road end leading to one can still be removed, and passing caravans do not restart the stillness period. On: every world object on a road holds it in place, like a settlement.</WRC_AnchorAllWorldObjects_Desc>
+  <WRC_AnchorAllWorldObjects_Desc>Off: settlements and other world objects that stay put (outposts, sites, map buildings) hold roads in place. Caravans, transport pods and other travellers on the move do not, so passing traffic does not restart the stillness period. On: every world object on a road holds it in place, moving ones included.</WRC_AnchorAllWorldObjects_Desc>
   <WRC_MaxSpurLength>Longest road end removed: {0} tiles</WRC_MaxSpurLength>
   <WRC_MaxSpurLength_Desc>A road end is only removed when the stretch from it to the next junction or settlement is at most this long. Longer roads into empty land are kept, since they look like real routes.</WRC_MaxSpurLength_Desc>
   <WRC_StillnessDays>Stillness period: {0} days</WRC_StillnessDays>

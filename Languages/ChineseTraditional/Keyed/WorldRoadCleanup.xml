@@ -7,7 +7,7 @@
   <WRC_UnifyTypes>統一混雜的道路種類</WRC_UnifyTypes>
   <WRC_UnifyTypes_Desc>兩個路口之間的一段道路，種類在靜止期內都沒有變化後，改成該段佔多數的種類。平手時不改。</WRC_UnifyTypes_Desc>
   <WRC_AnchorAllWorldObjects>保留通往任何世界物件的道路</WRC_AnchorAllWorldObjects>
-  <WRC_AnchorAllWorldObjects_Desc>關閉：只有據點會固定道路。旅隊、移動單位、任務地點等世界物件來來去去，通往它們的道路末端仍可能被清除，旅隊路過也不會讓靜止期重新計算。開啟：道路上的任何世界物件都會像據點一樣固定道路。</WRC_AnchorAllWorldObjects_Desc>
+  <WRC_AnchorAllWorldObjects_Desc>關閉：據點及其他不會移動的世界物件（哨站、任務地點、地圖上的建築）會固定道路。旅隊、運輸艙等移動中的單位不會，路過的交通也不會讓靜止期重新計算。開啟：道路上的任何世界物件都會固定道路，包括移動中的單位。</WRC_AnchorAllWorldObjects_Desc>
   <WRC_MaxSpurLength>清除的末端最長：{0} 格</WRC_MaxSpurLength>
   <WRC_MaxSpurLength_Desc>只有從末端到下一個路口或據點的距離不超過這個長度時，才會清除。更長的道路即使通往空地也會保留，因為看起來像真正的路線。</WRC_MaxSpurLength_Desc>
   <WRC_StillnessDays>靜止期：{0} 天</WRC_StillnessDays>
