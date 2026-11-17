@@ -41,7 +41,7 @@ namespace WorldRoadCleanup
         public WorldRoadCleanupMod(ModContentPack content) : base(content)
         {
             Settings = GetSettings<CleanupSettings>();
-            new Harmony("ifchen0.worldroadcleanup").PatchAll();
+            new Harmony("ifchen0.worldroadcleanup").PatchAll(typeof(WorldRoadCleanupMod).Assembly);
         }
 
         public override string SettingsCategory() => "World Road Cleanup";
