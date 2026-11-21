@@ -22,11 +22,12 @@ namespace WorldRoadCleanup
         public int merged;
         public int fans;
         public int loops;
+        public int zipped;
 
-        public bool Changed => removedLinks > 0 || unifiedLinks > 0 || straightened > 0 || merged > 0 || fans > 0 || loops > 0;
+        public bool Changed => removedLinks > 0 || unifiedLinks > 0 || straightened > 0 || merged > 0 || fans > 0 || loops > 0 || zipped > 0;
 
         public override string ToString() =>
-            $"dead ends {trackedEnds} (still {stillEnds}; {longEnds} longer ones kept), removed {removedLinks} links; straightened {straightened} kinks; merged {merged} parallel; collapsed {fans} fans; opened {loops} small loops; " +
+            $"dead ends {trackedEnds} (still {stillEnds}; {longEnds} longer ones kept), removed {removedLinks} links; straightened {straightened} kinks; merged {merged} parallel; collapsed {fans} fans; zipped {zipped} side-by-side steps; opened {loops} small loops; " +
             $"mixed segments {trackedSegments} (still {stillSegments}), unified {unifiedSegments} ({unifiedLinks} links)";
     }
 
@@ -59,6 +60,10 @@ namespace WorldRoadCleanup
         private const int MaxDetourLinks = 6;
         // Longest stretch (in links) removed from a small loop; the way around may be one link longer.
         private const int MaxLoopLinks = 4;
+        // Links in a six-tile knot; such a ring loses its lowest-type stretch even when the way round is longer.
+        private const int RingLinks = 6;
+        // Knot sides whose end turns differ by less than this count as equally straight.
+        private const float StraightTieDegrees = 15f;
         private const int FlashTicks = 600;
         private static readonly Dictionary<RoadDef, int> counts = new Dictionary<RoadDef, int>();
 
@@ -90,6 +95,7 @@ namespace WorldRoadCleanup
                     changed |= StraightenKinks(layer, occupied, apply, flash, result);
                     changed |= MergeParallelRoads(layer, occupied, apply, flash, result);
                     changed |= CollapseFans(layer, occupied, apply, flash, result);
+                    changed |= ZipSideBySide(layer, occupied, apply, flash, result);
                     changed |= OpenSmallLoops(layer, occupied, apply, flash, result);
                 }
                 if (WorldRoadCleanupMod.Settings.unifyTypes)
@@ -302,6 +308,77 @@ namespace WorldRoadCleanup
         }
 
         /// <summary>
+        /// Two roads that leave the same junction side by side and only split later look like one doubled road.
+        /// The lower-type branch's first tile B is dropped and the tile after it joined to the other branch's first
+        /// tile A, so the junction moves one tile along the shared stretch; repeated passes zip the pair together up
+        /// to where they really part. Every road still reaches the same places and each step removes a link, so this
+        /// cannot undo itself.
+        /// </summary>
+        private static bool ZipSideBySide(PlanetLayer layer, HashSet<int> occupied, bool apply, bool flash, PassResult result)
+        {
+            var touched = new HashSet<int>();
+            bool changed = false;
+            for (int x = 0; x < layer.TilesCount; x++)
+            {
+                if (Degree(layer, x) < 3 || occupied.Contains(x) || touched.Contains(x) || IsWater(layer, x))
+                    continue;
+                List<SurfaceTile.RoadLink> roads = ((SurfaceTile)layer[x]).potentialRoads;
+                bool done = false;
+                // First try merging the lower type into the higher one (on a tie the lower tile id is kept, so the
+                // choice is stable); when only the other direction fits the hex layout, take that instead.
+                for (int round = 0; round < 2 && !done; round++)
+                for (int i = 0; i < roads.Count && !done; i++)
+                {
+                    for (int j = 0; j < roads.Count && !done; j++)
+                    {
+                        if (i == j)
+                            continue;
+                        SurfaceTile.RoadLink keep = roads[i], drop = roads[j];
+                        bool preferred = keep.road.priority > drop.road.priority
+                            || (keep.road.priority == drop.road.priority && keep.neighbor.tileId < drop.neighbor.tileId);
+                        if (preferred != (round == 0))
+                            continue;
+                        int a = keep.neighbor.tileId, b = drop.neighbor.tileId;
+                        if (!Find.WorldGrid.IsNeighbor(keep.neighbor, drop.neighbor) || !IsPlainStep(layer, a, occupied, touched)
+                            || !IsPlainStep(layer, b, occupied, touched) || Find.WorldGrid.GetRoadDef(keep.neighbor, drop.neighbor, visibleOnly: false) != null)
+                            continue;
+                        List<SurfaceTile.RoadLink> bRoads = ((SurfaceTile)layer[b]).potentialRoads;
+                        SurfaceTile.RoadLink onward = bRoads[0].neighbor.tileId == x ? bRoads[1] : bRoads[0];
+                        int b2 = onward.neighbor.tileId;
+                        if (b2 == a || touched.Contains(b2) || IsWater(layer, b2) || !Find.WorldGrid.IsNeighbor(keep.neighbor, onward.neighbor)
+                            || Find.WorldGrid.GetRoadDef(keep.neighbor, onward.neighbor, visibleOnly: false) != null)
+                            continue;
+                        result.zipped++;
+                        if (flash)
+                            Find.World.debugDrawer.FlashTile(layer.PlanetTileForID(b), DebugMatsSpectrum.Mat(ColorKink, transparent: true), null, FlashTicks);
+                        touched.Add(x);
+                        touched.Add(a);
+                        touched.Add(b);
+                        touched.Add(b2);
+                        done = true;
+                        if (!apply)
+                            break;
+                        RemoveLink(layer, x, b);
+                        RemoveLink(layer, b, b2);
+                        Find.WorldGrid.OverlayRoad(keep.neighbor, onward.neighbor, onward.road);
+                        // The shared stretch now carries both roads, so it takes the higher type of the two.
+                        if (drop.road.priority > keep.road.priority)
+                        {
+                            RemoveLink(layer, x, a);
+                            Find.WorldGrid.OverlayRoad(layer.PlanetTileForID(x), keep.neighbor, drop.road);
+                        }
+                        changed = true;
+                    }
+                }
+            }
+            return changed;
+        }
+
+        /// <summary>A degree-2 road tile with no anchor, not water and not changed yet this pass.</summary>
+        private static bool IsPlainStep(PlanetLayer layer, int tile, HashSet<int> occupied, HashSet<int> touched) =>
+            Degree(layer, tile) == 2 && !occupied.Contains(tile) && !touched.Contains(tile) && !IsWater(layer, tile);
+
+        /// <summary>
         /// Two stretches between the same pair of junctions where one runs right alongside the other (every tile of
         /// it touches the other road) look like a single doubled road. The longer one (or the lower road type on a
         /// tie) is removed; the other still connects the two junctions. One pair per junction pair per pass.
@@ -454,20 +531,30 @@ namespace WorldRoadCleanup
             {
                 if (AnyTouched(stretch, touched))
                     continue;
-                List<Link> around = FindWayAround(layer, stretch, touched);
-                if (around == null || !Hugs(layer, stretch, around))
+                List<Link> around = FindWayAround(layer, stretch, touched, stretch.Count + 1);
+                List<Link> remove = stretch;
+                if (around == null && stretch.Count < RingLinks)
+                {
+                    // A six-tile knot (ring around one hex, or a triangle two tiles a side): roads meeting around a spot instead of at it.
+                    around = FindWayAround(layer, stretch, touched, RingLinks - stretch.Count);
+                    if (around != null && (around.Count + stretch.Count != RingLinks || !IsCompactRing(layer, stretch, around)))
+                        around = null;
+                    if (around != null)
+                        remove = MostBentArc(layer, stretch, around, occupied);
+                }
+                if (around == null || remove == null || !Hugs(layer, stretch, around))
                     continue;
                 result.loops++;
                 if (flash)
                 {
                     Material mat = DebugMatsSpectrum.Mat(ColorParallel, transparent: true);
-                    if (stretch.Count == 1)
+                    if (remove.Count == 1)
                     {
-                        Find.World.debugDrawer.FlashTile(layer.PlanetTileForID(stretch[0].a), mat, null, FlashTicks);
-                        Find.World.debugDrawer.FlashTile(layer.PlanetTileForID(stretch[0].b), mat, null, FlashTicks);
+                        Find.World.debugDrawer.FlashTile(layer.PlanetTileForID(remove[0].a), mat, null, FlashTicks);
+                        Find.World.debugDrawer.FlashTile(layer.PlanetTileForID(remove[0].b), mat, null, FlashTicks);
                     }
-                    for (int i = 0; i < stretch.Count - 1; i++)
-                        Find.World.debugDrawer.FlashTile(layer.PlanetTileForID(stretch[i].b), mat, null, FlashTicks);
+                    for (int i = 0; i < remove.Count - 1; i++)
+                        Find.World.debugDrawer.FlashTile(layer.PlanetTileForID(remove[i].b), mat, null, FlashTicks);
                 }
                 foreach (Link link in stretch)
                 {
@@ -481,7 +568,7 @@ namespace WorldRoadCleanup
                 }
                 if (!apply)
                     continue;
-                foreach (Link link in stretch)
+                foreach (Link link in remove)
                     RemoveLink(layer, link.a, link.b);
                 changed = true;
             }
@@ -489,14 +576,94 @@ namespace WorldRoadCleanup
         }
 
         /// <summary>
-        /// Shortest road from one end of <paramref name="stretch"/> to the other that avoids the stretch itself and
-        /// touched tiles, at most one link longer than the stretch; null when there is none.
+        /// Picks which side of a six-tile knot to remove: the one whose ends turn most sharply into the roads outside
+        /// the ring, so a road that runs straight through the knot keeps its straight line. Sides within
+        /// <see cref="StraightTieDegrees"/> of each other keep the ones linking an anchor directly, then the higher road type.
+        /// Null when no side can go (water inside it).
         /// </summary>
-        private static List<Link> FindWayAround(PlanetLayer layer, List<Link> stretch, HashSet<int> touched)
+        private static List<Link> MostBentArc(PlanetLayer layer, List<Link> stretch, List<Link> around, HashSet<int> occupied)
+        {
+            var ring = new HashSet<int>();
+            foreach (Link link in stretch)
+            {
+                ring.Add(link.a);
+                ring.Add(link.b);
+            }
+            foreach (Link link in around)
+            {
+                ring.Add(link.a);
+                ring.Add(link.b);
+            }
+            var arcs = new List<List<Link>> { stretch };
+            var current = new List<Link>();
+            foreach (Link link in around)
+            {
+                current.Add(link);
+                if (IsBreak(layer, link.b, occupied))
+                {
+                    arcs.Add(current);
+                    current = new List<Link>();
+                }
+            }
+            if (current.Count > 0)
+                arcs.Add(current);
+
+            List<Link> best = null;
+            float bestTurn = -1f;
+            foreach (List<Link> arc in arcs)
+            {
+                bool water = false;
+                for (int i = 0; i < arc.Count - 1; i++)
+                    water |= IsWater(layer, arc[i].b);
+                if (water)
+                    continue;
+                float turn = EndTurn(layer, arc[0].a, arc[0].b, ring) + EndTurn(layer, arc[arc.Count - 1].b, arc[arc.Count - 1].a, ring);
+                bool better = best == null || turn > bestTurn + StraightTieDegrees;
+                if (!better && turn > bestTurn - StraightTieDegrees)
+                {
+                    // Equally bent: keep sides that link an anchor (settlement) directly, then the higher road type.
+                    int c = AnchoredEnds(arc, occupied).CompareTo(AnchoredEnds(best, occupied));
+                    better = c < 0 || (c == 0 && MaxPriority(arc) < MaxPriority(best));
+                }
+                if (better)
+                {
+                    best = arc;
+                    bestTurn = turn;
+                }
+            }
+            return best;
+        }
+
+        private static int AnchoredEnds(List<Link> arc, HashSet<int> occupied) =>
+            (occupied.Contains(arc[0].a) ? 1 : 0) + (occupied.Contains(arc[arc.Count - 1].b) ? 1 : 0);
+
+        /// <summary>
+        /// Smallest turn (degrees) from a road leaving the ring at <paramref name="end"/> into the ring towards
+        /// <paramref name="next"/>; 180 when no road leaves there.
+        /// </summary>
+        private static float EndTurn(PlanetLayer layer, int end, int next, HashSet<int> ring)
+        {
+            Vector3 e = Find.WorldGrid.GetTileCenter(layer.PlanetTileForID(end));
+            Vector3 into = Find.WorldGrid.GetTileCenter(layer.PlanetTileForID(next)) - e;
+            float best = 180f;
+            foreach (SurfaceTile.RoadLink road in ((SurfaceTile)layer[end]).potentialRoads)
+            {
+                if (ring.Contains(road.neighbor.tileId))
+                    continue;
+                Vector3 from = e - Find.WorldGrid.GetTileCenter(road.neighbor);
+                best = Mathf.Min(best, Vector3.Angle(from, into));
+            }
+            return best;
+        }
+
+        /// <summary>
+        /// Shortest road from one end of <paramref name="stretch"/> to the other that avoids the stretch itself and
+        /// touched tiles, at most <paramref name="maxLinks"/> links long; null when there is none.
+        /// </summary>
+        private static List<Link> FindWayAround(PlanetLayer layer, List<Link> stretch, HashSet<int> touched, int maxLinks)
         {
             int start = stretch[0].a;
             int goal = stretch[stretch.Count - 1].b;
-            int maxLinks = stretch.Count + 1;
             var inner = new HashSet<int>();
             for (int i = 0; i < stretch.Count - 1; i++)
                 inner.Add(stretch[i].b);
@@ -530,6 +697,57 @@ namespace WorldRoadCleanup
                 frontier = next;
             }
             return null;
+        }
+
+        /// <summary>
+        /// True when the six-tile ring formed by <paramref name="stretch"/> and <paramref name="around"/> is a tight knot:
+        /// either it encloses one tile (every ring tile borders it), or it is a triangle two tiles a side, whose three
+        /// side-middle tiles touch each other without being linked.
+        /// </summary>
+        private static bool IsCompactRing(PlanetLayer layer, List<Link> stretch, List<Link> around)
+        {
+            var ring = new HashSet<int>();
+            foreach (Link link in stretch)
+            {
+                ring.Add(link.a);
+                ring.Add(link.b);
+            }
+            foreach (Link link in around)
+            {
+                ring.Add(link.a);
+                ring.Add(link.b);
+            }
+            if (ring.Count != RingLinks)
+                return false;
+            var tiles = new List<PlanetTile>();
+            foreach (int t in ring)
+                tiles.Add(layer.PlanetTileForID(t));
+            int chords = 0;
+            for (int i = 0; i < tiles.Count; i++)
+                for (int j = i + 1; j < tiles.Count; j++)
+                    if (Find.WorldGrid.IsNeighbor(tiles[i], tiles[j]) && Find.WorldGrid.GetRoadDef(tiles[i], tiles[j], visibleOnly: false) == null)
+                        chords++;
+            if (chords >= 3)
+                return true;
+            var candidates = new List<PlanetTile>();
+            Find.WorldGrid.GetTileNeighbors(layer.PlanetTileForID(stretch[0].a), candidates);
+            foreach (PlanetTile centre in candidates)
+            {
+                if (ring.Contains(centre.tileId))
+                    continue;
+                bool all = true;
+                foreach (int t in ring)
+                {
+                    if (!Find.WorldGrid.IsNeighbor(centre, layer.PlanetTileForID(t)))
+                    {
+                        all = false;
+                        break;
+                    }
+                }
+                if (all)
+                    return true;
+            }
+            return false;
         }
 
         /// <summary>True when every inner tile of <paramref name="side"/> is on or next to <paramref name="other"/>.</summary>
